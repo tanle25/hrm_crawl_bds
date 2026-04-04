@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+# bds — CLI wrapper (executes bds.py with the correct Python)
+# Works from any directory on macOS / Linux / Windows (via bds.bat)
+import os, sys; os.chdir(os.path.dirname(os.path.realpath(__file__))); os.execv(sys.executable, [sys.executable, "bds.py"] + sys.argv[1:])

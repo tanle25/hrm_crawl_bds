@@ -1,0 +1,41 @@
+# Dependencies
+.venv314/
+__pycache__/
+*.pyc
+*.pyo
+
+# Playwright browsers (installed in image)
+ms-playwright/
+
+# Environment & secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Logs & temp
+*.log
+*.pid
+bds.log
+
+# Crawler output (should be volume-mounted)
+output/
+*.json
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs (optional — keep if you want minimal image)
+*.md
+!requirements.txt

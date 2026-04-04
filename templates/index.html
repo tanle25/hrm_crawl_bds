@@ -1,0 +1,1857 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BDS Agent</title>
+  <style>
+    :root {
+      --bg: #f4f7fa;
+      --surface: #ffffff;
+      --surface-soft: #f8fbfd;
+      --surface-muted: #eef3f7;
+      --ink: #1a2a33;
+      --muted: #70828f;
+      --line: #d7e3ea;
+      --accent: #1f8fb8;
+      --accent-soft: #e8f5fb;
+      --success: #0c8c62;
+      --success-soft: #e8f8f1;
+      --shadow: 0 10px 30px rgba(31, 67, 91, 0.08);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f7fafc 0%, #edf4f8 100%);
+    }
+    .wrap {
+      width: 100%;
+      max-width: 1536px;
+      margin: 0 auto;
+      padding: 0 16px 40px;
+    }
+    .topbar {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      border-bottom: 1px solid rgba(215, 227, 234, 0.9);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+    .brandMark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #4fb4d8, #1f8fb8);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .brandTitle {
+      font-size: 15px;
+      line-height: 1.1;
+      font-weight: 700;
+    }
+    .brandTitle span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex: 1;
+    }
+    .topnav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .topnav a.active { color: var(--ink); }
+    .statusPill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+    }
+    .searchBar {
+      margin: 22px 0 20px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      gap: 12px;
+    }
+    .modeSwitch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+    .modeBtn {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 999px;
+      box-shadow: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .modeBtn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(31, 143, 184, 0.18);
+    }
+    .typeSwitch {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+    .typeBtn {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      box-shadow: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .typeBtn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .typeBtn:hover:not(.active) {
+      background: var(--surface-muted);
+      color: var(--ink);
+    }
+    .typeBtn .count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      margin-left: 5px;
+      background: rgba(0,0,0,0.12);
+    }
+    .typeBtn.active .count {
+      background: rgba(255,255,255,0.25);
+    }
+    input, textarea, button { font: inherit; }
+    input, textarea {
+      width: 100%;
+      padding: 15px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      color: var(--ink);
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(31, 143, 184, 0.4);
+      box-shadow: 0 0 0 4px rgba(31, 143, 184, 0.08);
+      background: #fff;
+    }
+    button {
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 0;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(31, 143, 184, 0.18);
+    }
+    button.alt {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+    .gridCards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+    .item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .cardImage {
+      width: 100%;
+      aspect-ratio: 1.72 / 1;
+      border-radius: 12px;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(135deg, #dfeff5, #f3f8fb);
+      border: 1px solid #e4edf2;
+    }
+    .cardBody { padding: 14px 6px 6px; }
+    .titleRow { display: block; }
+    .title {
+      font-size: 17px;
+      line-height: 1.32;
+      font-weight: 700;
+    }
+    .price {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--success);
+      line-height: 1.4;
+    }
+    .intentBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .intentBadge.ban { background: #e8f8f1; color: #0c8c62; }
+    .intentBadge.can_mua { background: #fff8e6; color: #b57600; }
+    .intentBadge.cho_thue { background: #e8f5fb; color: #1f6fb8; }
+    .intentBadge.unk { background: var(--surface-muted); color: var(--muted); }
+    .content {
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .meta { display: grid; gap: 4px; margin-top: 12px; margin-bottom: 8px; }
+    .subline { color: var(--muted); font-size: 12px; margin-top: 7px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .panelTitle { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .stat {
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .statLabel {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .statValue { font-size: 26px; font-weight: 800; margin-top: 5px; }
+    .searchResults { display: grid; gap: 14px; max-height: 420px; overflow: auto; }
+    .resultItem { border-top: 1px solid var(--line); padding-top: 12px; }
+    .resultItem:first-child { border-top: 0; padding-top: 0; }
+    a.link { color: var(--accent); text-decoration: none; font-weight: 700; }
+    .empty {
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      text-align: center;
+    }
+    .statsBar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .chatDock {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .chatPanel {
+      width: 380px;
+      max-width: calc(100vw - 24px);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px 18px 10px 10px;
+      box-shadow: 0 18px 50px rgba(31, 67, 91, 0.18);
+      overflow: hidden;
+      display: none;
+    }
+    .chatPanel.open { display: block; }
+    .chatHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, #f7fbfe 0%, #eff6fb 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .chatHeadTitle { font-size: 13px; font-weight: 700; }
+    .chatHeadSub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .chatHeadBtn {
+      background: transparent;
+      color: var(--muted);
+      border: 0;
+      box-shadow: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .chatBody { padding: 0; display: grid; grid-template-rows: 320px auto; }
+    .chatMessages {
+      padding: 14px 14px 8px;
+      overflow: auto;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .bubbleRow { display: flex; }
+    .bubbleRow.user { justify-content: flex-end; }
+    .bubbleRow.assistant { justify-content: flex-start; }
+    .bubble {
+      max-width: 82%;
+      border-radius: 18px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .bubble p { margin: 0 0 8px; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble ul { margin: 0; padding-left: 18px; }
+    .bubble li { margin: 0 0 6px; }
+    .bubble li:last-child { margin-bottom: 0; }
+    .bubble strong { font-weight: 700; }
+    .chatListings { display: grid; gap: 10px; margin-top: 10px; }
+    .chatListing {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .chatListingGallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
+      background: #f7fafc;
+    }
+    .chatListingImage {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(135deg, #dfeff5, #f3f8fb);
+      cursor: pointer;
+      border-radius: 10px;
+    }
+    .chatListingBody { padding: 10px 12px 12px; display: grid; gap: 6px; }
+    .chatField { font-size: 12px; line-height: 1.5; color: #314250; }
+    .chatField b { color: #13232c; }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 18, 28, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 120;
+      padding: 24px;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: min(92vw, 1200px);
+      max-height: 88vh;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    .lightboxClose {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+    }
+    .bubble.user { background: #1f8fb8; color: white; border-bottom-right-radius: 6px; }
+    .bubble.assistant { background: #eef3f7; color: #314250; border-bottom-left-radius: 6px; }
+    .typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      background: #eef3f7;
+      border-radius: 16px;
+      border-bottom-left-radius: 6px;
+    }
+    .typing span {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #8ca0af;
+      animation: blink 1.2s infinite ease-in-out;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+      40% { opacity: 1; transform: translateY(-2px); }
+    }
+    .chatComposer {
+      border-top: 1px solid var(--line);
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .chatComposer textarea {
+      min-height: 42px;
+      max-height: 110px;
+      resize: vertical;
+      border-radius: 18px;
+      padding: 11px 14px;
+    }
+    .chatSend { width: 42px; height: 42px; border-radius: 999px; padding: 0; display: grid; place-items: center; }
+    .chatToggle {
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      padding: 0;
+      box-shadow: 0 16px 32px rgba(31, 143, 184, 0.28);
+    }
+    @media (max-width: 1280px) { .gridCards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 980px) { .gridCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .statsBar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 768px) { .wrap { padding-left: 24px; padding-right: 24px; } }
+    @media (min-width: 1024px) { .wrap { padding-left: 32px; padding-right: 32px; } }
+    @media (max-width: 760px) {
+      .topbar { height: auto; padding: 14px 0; flex-wrap: wrap; }
+      .topnav { justify-content: flex-start; order: 3; width: 100%; }
+      .searchBar { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .gridCards { grid-template-columns: 1fr; }
+      .statsBar { grid-template-columns: 1fr; }
+      .chatDock { right: 12px; bottom: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandMark">36</div>
+        <div class="brandTitle">Thanh Hoa<span>LLM Processed Properties</span></div>
+      </div>
+      <nav class="topnav">
+        <a class="active" href="#" onclick="showSection('posts'); return false;">Properties</a>
+        <a href="#" onclick="showSection('settings'); return false;">Settings</a>
+        <a href="#" onclick="document.getElementById('searchQuery').focus(); return false;">Insights</a>
+        <a href="#" onclick="document.getElementById('chatMessage').focus(); return false;">Ask</a>
+        <a href="#" onclick="showZaloSection(); return false;">Zalo</a>
+      </nav>
+      <div class="statusPill" id="statusPill">Loading...</div>
+    </header>
+
+    <section class="searchBar">
+      <div class="modeSwitch">
+        <button id="smartModeBtn" class="modeBtn active" onclick="setSearchMode('smart')">Thông minh</button>
+        <button id="normalModeBtn" class="modeBtn" onclick="setSearchMode('normal')">Thường</button>
+      </div>
+      <input id="searchQuery" placeholder="Semantic search: khu vực, giá, diện tích, loại nhà đất..." />
+      <div id="typeFilter" class="typeSwitch"></div>
+      <button onclick="runSearch()">Search</button>
+      <button class="alt" onclick="resetGrid()">All listings</button>
+    </section>
+
+    <section class="statsBar" id="stats"></section>
+    <section id="zaloSection" style="display:none">
+      <div class="panel" style="max-width:560px">
+        <div class="panelTitle">Zalo Messaging</div>
+
+        <div id="zaloLoginForm" style="display:none">
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:#70828f;display:block;margin-bottom:4px">Cookie (JSON)</label>
+            <textarea id="zCookie" rows="4" style="width:100%;font-size:12px;border-radius:10px;padding:10px;font-family:monospace"
+              placeholder='[{"name":"zpsr","value":"..."},...]'></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#70828f;display:block;margin-bottom:4px">IMEI (z_uuid)</label>
+              <input id="zImei" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid #d7e3ea;font-size:13px"
+                placeholder="z_uuid from localStorage" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#70828f;display:block;margin-bottom:4px">User-Agent</label>
+              <input id="zUa" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid #d7e3ea;font-size:13px"
+                placeholder="navigator.userAgent" />
+            </div>
+          </div>
+          <button onclick="zaloLogin()" style="padding:10px 18px">Đăng nhập Zalo</button>
+        </div>
+
+        <div id="zaloStatusBar" style="display:none;margin-bottom:14px;padding:12px;border-radius:10px;background:#e8f8f1;border:1px solid #0c8c62">
+          <span style="font-size:13px;font-weight:700;color:#0c8c62">✓ Đã đăng nhập Zalo</span>
+        </div>
+
+        <div id="zaloLoginStatus" style="margin-bottom:12px">
+          <button class="alt" onclick="zaloCheckStatus()" style="font-size:13px">Kiểm tra đăng nhập</button>
+          <button class="alt" onclick="showZaloLoginForm()" style="font-size:13px;margin-left:8px">Nhập Cookie</button>
+        </div>
+
+        <div style="border-top:1px solid #d7e3ea;padding-top:14px;margin-top:4px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#1a2a33">Gửi tin nhắn thử</div>
+          <div style="margin-bottom:10px">
+            <input id="zPhone" style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid #d7e3ea;font-size:14px"
+              placeholder="Zalo ID người nhận (VD: 689893789496816597)" />
+          </div>
+          <div style="margin-bottom:10px">
+            <textarea id="zMsg" rows="3" style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid #d7e3ea;font-size:13px"
+              placeholder="Nội dung tin nhắn..."></textarea>
+          </div>
+          <button onclick="zaloSendTest()">Gửi tin</button>
+          <button class="alt" onclick="zaloShowFriends()" style="margin-left:8px;font-size:13px;padding:10px 14px">DS Bạn bè</button>
+          <div id="zaloFriendsList" style="display:none;margin-top:12px;max-height:240px;overflow-y:auto;border:1px solid #d7e3ea;border-radius:10px"></div>
+          <div id="zaloResult" style="margin-top:10px;font-size:13px;color:#70828f"></div>
+        </div>
+      </div>
+    </section>
+    <section id="settingsSection" style="display:none">
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:start">
+        <!-- Sidebar -->
+        <div class="panel">
+          <div class="panelTitle">Settings</div>
+          <div style="display:grid;gap:4px">
+            <button id="tabCookies" class="alt" onclick="showSettingsTab('cookies')" style="text-align:left;padding:10px 14px;font-size:13px;font-weight:600;background:var(--accent-soft);color:var(--accent)">
+              🍪 Facebook Cookies
+            </button>
+            <button id="tabGroups" class="alt" onclick="showSettingsTab('groups')" style="text-align:left;padding:10px 14px;font-size:13px;font-weight:600">
+              👥 Facebook Groups
+            </button>
+            <button id="tabCrawler" class="alt" onclick="showSettingsTab('crawler')" style="text-align:left;padding:10px 14px;font-size:13px;font-weight:600">
+              🕷️ Crawler
+            </button>
+            <button id="tabCron" class="alt" onclick="showSettingsTab('cron')" style="text-align:left;padding:10px 14px;font-size:13px;font-weight:600">
+              ⏰ Cron Jobs
+            </button>
+            <button id="tabTelegram" class="alt" onclick="showSettingsTab('telegram')" style="text-align:left;padding:10px 14px;font-size:13px;font-weight:600">
+              📱 Telegram
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div id="settingsContent">
+          <!-- Cookies tab -->
+          <div id="paneCookies">
+            <div class="panel" style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div class="panelTitle" style="margin:0">Cookie Profiles</div>
+                <button onclick="showAddCookie()" style="padding:8px 16px;font-size:13px">+ Add Profile</button>
+              </div>
+              <div id="cookieList"></div>
+              <div id="addCookieForm" style="display:none;margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-soft)">
+                <div style="margin-bottom:10px">
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Profile Name</label>
+                  <input id="cookieNameInput" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px" placeholder="e.g. default, chrome_session..." />
+                </div>
+                <div style="margin-bottom:10px">
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Cookies JSON</label>
+                  <textarea id="cookieJsonInput" rows="8" style="width:100%;font-size:12px;border-radius:10px;padding:10px;font-family:monospace" placeholder='[{"name":"c_user","value":"...","domain":".facebook.com",...}]'></textarea>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button onclick="saveCookieProfile()">Save</button>
+                  <button class="alt" onclick="document.getElementById('addCookieForm').style.display='none'" style="padding:10px 14px;font-size:13px">Cancel</button>
+                </div>
+                <div id="cookieSaveResult" style="margin-top:8px;font-size:13px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Groups tab -->
+          <div id="paneGroups" style="display:none">
+            <div class="panel" style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div class="panelTitle" style="margin:0">Facebook Groups</div>
+                <button onclick="showAddGroup()" style="padding:8px 16px;font-size:13px">+ Add Group</button>
+              </div>
+              <div id="groupList"></div>
+              <div id="addGroupForm" style="display:none;margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-soft)">
+                <div style="margin-bottom:10px">
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Group URL</label>
+                  <input id="groupUrlInput" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px" placeholder="https://www.facebook.com/groups/..." />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+                  <div>
+                    <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Name (optional)</label>
+                    <input id="groupNameInput" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px" placeholder="My Group" />
+                  </div>
+                  <div>
+                    <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Priority</label>
+                    <input id="groupPriorityInput" type="number" value="0" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px" />
+                  </div>
+                  <div>
+                    <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Max Posts</label>
+                    <input id="groupMaxPostsInput" type="number" value="120" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px" />
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button onclick="saveGroupProfile()">Save</button>
+                  <button class="alt" onclick="document.getElementById('addGroupForm').style.display='none'" style="padding:10px 14px;font-size:13px">Cancel</button>
+                </div>
+                <div id="groupSaveResult" style="margin-top:8px;font-size:13px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Crawler tab -->
+          <div id="paneCrawler" style="display:none">
+            <!-- Cookie + Rotation settings -->
+            <div class="panel" style="margin-bottom:16px">
+              <div class="panelTitle">Cookie &amp; Rotation</div>
+
+              <!-- Cookie selector -->
+              <div style="margin-bottom:14px">
+                <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">Sử dụng Cookie Profile</label>
+                <div id="crawlCookieOptions" style="display:grid;gap:6px"></div>
+              </div>
+
+              <!-- Rotation toggle -->
+              <div style="margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" id="rotationToggle" onchange="saveRotationSetting()" style="width:16px;height:16px" />
+                    🔄 Xoay Cookie — tự động đổi tài khoản sau khi cào
+                  </label>
+                </div>
+                <div id="rotationAfterWrap" style="display:none;margin-top:8px;margin-left:24px">
+                  <label style="font-size:12px;color:var(--muted)">Đổi cookie sau </label>
+                  <input id="rotationAfterGroups" type="number" min="1" max="20" value="3"
+                    onchange="saveRotationSetting()"
+                    style="width:60px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);font-size:13px;text-align:center" />
+                  <label style="font-size:12px;color:var(--muted)"> nhóm</label>
+                  <div style="margin-top:6px;font-size:12px;color:var(--muted)">
+                    VD: 3 nhóm → cào nhóm 1-3 bằng cookie A → đổi sang cookie B → cào nhóm 4-6...
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="saveCrawlerSettings()" style="padding:9px 16px;font-size:13px">💾 Lưu cài đặt</button>
+              <span id="crawlerSettingsResult" style="margin-left:12px;font-size:13px"></span>
+            </div>
+
+            <!-- Group selection + Trigger -->
+            <div class="panel" style="margin-bottom:16px">
+              <div class="panelTitle">Groups</div>
+              <div style="margin-bottom:10px">
+                <button onclick="checkAllGroups()" style="padding:7px 12px;font-size:12px" class="alt">✓ Chọn tất cả</button>
+                <button onclick="uncheckAllGroups()" style="padding:7px 12px;font-size:12px" class="alt">✗ Bỏ chọn tất cả</button>
+                <span id="groupSelectCount" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+              </div>
+              <div id="crawlGroupChecks" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface-soft)"></div>
+            </div>
+
+            <!-- Trigger -->
+            <div class="panel">
+              <div class="panelTitle">Run Crawl</div>
+              <p style="font-size:13px;color:var(--muted);margin:0 0 14px">
+                Chạy với <strong>file cookies.json</strong> hiện tại trên disk (không cần DB).
+                Dùng tab <strong>Settings → Cookies</strong> để quản lý cookie trong DB.
+              </p>
+              <div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);border:1px solid #b8d4e8">
+                <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px">📌 Chế độ chạy</div>
+                <div style="font-size:12px;color:var(--muted)">
+                  Sử dụng file <code style="background:#fff;padding:1px 5px;border-radius:4px">cookies.json</code> trên disk ·
+                  Groups từ DB (nếu có) hoặc file <code style="background:#fff;padding:1px 5px;border-radius:4px">facebook_groups.txt</code>
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">Số luồng chạy song song</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="alt" onclick="setWorkers(1)" id="workersBtn_1" style="padding:7px 14px;font-size:13px">1 luồng</button>
+                  <button class="alt" onclick="setWorkers(2)" id="workersBtn_2" style="padding:7px 14px;font-size:13px">2 luồng</button>
+                  <button class="alt" onclick="setWorkers(3)" id="workersBtn_3" style="padding:7px 14px;font-size:13px">3 luồng</button>
+                </div>
+                <div style="margin-top:6px;font-size:11px;color:var(--muted)">⚠️ Nhiều luồng = cào nhanh hơn nhưng dễ bị Facebook checkpoint. Khuyến nghị: 1-2</div>
+              </div>
+              <button onclick="triggerCrawl()" id="crawlTriggerBtn">🕷️ Bắt đầu Crawl ngay</button>
+              <div id="crawlResult" style="margin-top:10px;font-size:13px"></div>
+            </div>
+          </div>
+
+          <!-- Cron tab -->
+          <div id="paneCron" style="display:none">
+            <div class="panel" style="margin-bottom:16px">
+              <div class="panelTitle">Cron Jobs</div>
+              <p style="font-size:13px;color:var(--muted);margin:0 0 14px">Tự động crawl định kỳ. Cron chạy trong 7 ngày sau khi tạo.</p>
+              <div style="margin-bottom:12px">
+                <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">Tần suất</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+                  <button class="alt" onclick="setCronFreq('hourly')" id="cronFreq_hourly" style="padding:9px 14px;font-size:13px">Mỗi giờ</button>
+                  <button class="alt" onclick="setCronFreq('daily')" id="cronFreq_daily" style="padding:9px 14px;font-size:13px">Hàng ngày</button>
+                  <button class="alt" onclick="setCronFreq('4h')" id="cronFreq_4h" style="padding:9px 14px;font-size:13px">Mỗi 4h</button>
+                  <button class="alt" onclick="setCronFreq('2h')" id="cronFreq_2h" style="padding:9px 14px;font-size:13px">Mỗi 2h</button>
+                </div>
+              </div>
+              <div id="activeCronJobs" style="margin-bottom:14px"></div>
+              <div style="display:flex;gap:8px">
+                <button onclick="createCronJob()">Tạo Cron</button>
+                <button class="alt" onclick="loadCronJobs()" style="padding:10px 14px;font-size:13px">Refresh</button>
+              </div>
+              <div id="cronResult" style="margin-top:10px;font-size:13px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="postsSection">
+      <div id="postsLoader" style="display:none;text-align:center;padding:32px;font-size:14px;color:var(--muted)">Đang tải...</div>
+      <div id="posts" class="gridCards"></div>
+      <div id="pagination"></div>
+    </section>
+  </div>
+
+  <!-- Telegram pane -->
+  <div id="paneTelegram" style="display:none">
+    <div class="panel" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="panelTitle" style="margin:0">📱 Telegram Notifications</div>
+        <div id="telegramStatusBadge" style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700"></div>
+      </div>
+
+      <div style="margin-bottom:14px;padding:12px;border-radius:10px;background:var(--surface-soft);border:1px solid var(--line)">
+        <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px">🤖 Bot Token (từ @BotFather)</div>
+        <div style="margin-bottom:10px">
+          <input id="telegramToken" type="password" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px;font-family:monospace"
+            placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz..." />
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px">💬 Chat ID (từ @userinfobot)</div>
+        <div style="margin-bottom:12px">
+          <input id="telegramChatId" type="text" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-size:13px"
+            placeholder="987654321" />
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:14px">
+          <input type="checkbox" id="telegramEnabled" style="width:16px;height:16px" />
+          Bật thông báo Telegram
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="saveTelegramConfig()" style="padding:9px 16px">💾 Lưu</button>
+          <button class="alt" onclick="testTelegram()" style="padding:9px 14px;font-size:13px" id="telegramTestBtn">📤 Gửi Test</button>
+        </div>
+        <div id="telegramSaveResult" style="margin-top:8px;font-size:13px"></div>
+      </div>
+
+      <div class="panelTitle" style="margin-bottom:10px">Sự kiện thông báo</div>
+      <div style="display:grid;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-soft)">
+          <div style="font-size:18px">🍪</div>
+          <div>
+            <div style="font-size:13px;font-weight:700">Cookie Die</div>
+            <div style="font-size:11px;color:var(--muted)">Gửi khi cookie bị đánh dấu dead (validate thất bại)</div>
+          </div>
+          <div style="margin-left:auto;font-size:11px;font-weight:700;color:#0c8c62">✓ Active</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-soft)">
+          <div style="font-size:18px">📲</div>
+          <div>
+            <div style="font-size:13px;font-weight:700">Lead Captured</div>
+            <div style="font-size:11px;color:var(--muted)">Gửi khi khách cung cấp số điện thoại qua chat</div>
+          </div>
+          <div style="margin-left:auto;font-size:11px;font-weight:700;color:#0c8c62">✓ Active</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:10px 12px;border-radius:10px;background:#fffbeb;border:1px solid #f5d06a">
+        <div style="font-size:12px;font-weight:700;color:#92600a;margin-bottom:4px">💡 Hướng dẫn nhanh</div>
+        <ol style="margin:0;padding-left:18px;font-size:12px;color:#92600a">
+          <li>Tạo bot: nhắn <code>/newbot</code> cho <b>@BotFather</b></li>
+          <li>Lấy token từ BotFather → paste vào ô <b>Bot Token</b></li>
+          <li>Nhắn tin cho <b>@userinfobot</b> để lấy Chat ID</li>
+          <li>Bật <b>Bật thông báo Telegram</b> → nhấn <b>Lưu</b></li>
+          <li>Nhấn <b>Gửi Test</b> để xác nhận kết nối</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="chatDock">
+    <div id="chatPanel" class="chatPanel">
+      <div class="chatHead">
+        <div>
+          <div class="chatHeadTitle">BDS Agent</div>
+          <div class="chatHeadSub">Đang hoạt động</div>
+        </div>
+        <button class="chatHeadBtn" onclick="toggleChat(false)">×</button>
+      </div>
+      <div class="chatBody">
+        <div id="chatMessages" class="chatMessages">
+          <div class="bubbleRow assistant">
+            <div class="bubble assistant">Mình có thể giúp bạn tìm bất động sản theo khu vực, giá, diện tích hoặc loại nhà đất.</div>
+          </div>
+        </div>
+        <div class="chatComposer">
+          <textarea id="chatMessage" rows="2" placeholder="Aa"></textarea>
+          <button class="chatSend" onclick="runChat()">&#9654;</button>
+        </div>
+      </div>
+    </div>
+    <button class="chatToggle" onclick="toggleChat()">&#128172;</button>
+  </div>
+
+  <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <button class="lightboxClose" onclick="closeLightbox(); event.stopPropagation();">×</button>
+    <img id="lightboxImage" src="" alt="preview" />
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentSearchMode = 'smart';
+    const PAGE_SIZE = 20;
+    let currentType = null;    // null | 'ban' | 'can_mua' | 'cho_thue'
+    let currentPage = 0;
+    let currentTotal = 0;
+    let isLoadingPosts = false;
+
+    function esc(v) {
+      return (v ?? '').toString()
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+
+    // ── Mode ────────────────────────────────────────────────────────────────
+    function setSearchMode(mode) {
+      currentSearchMode = mode;
+      document.getElementById('smartModeBtn').classList.toggle('active', mode === 'smart');
+      document.getElementById('normalModeBtn').classList.toggle('active', mode === 'normal');
+      document.getElementById('searchQuery').placeholder = mode === 'smart'
+        ? 'Semantic search: khu vực, giá, diện tích, loại nhà đất...'
+        : 'Tìm kiếm thường: tác giả, nội dung, địa chỉ, giá...';
+    }
+
+    // ── Intent badge ───────────────────────────────────────────────────────
+    function inferIntent(item) {
+      const a = item.analysis || {};
+      if (a.is_cho_thue) return 'cho_thue';
+      if (a.is_mua) return 'can_mua';
+      if (a.is_ban) return 'ban';
+      return null;
+    }
+
+    // ── Type tabs ───────────────────────────────────────────────────────────
+    function renderTabs() {
+      const tabs = [
+        {key: null,   label: 'Tất cả'},
+        {key: 'ban',   label: 'Bán'},
+        {key: 'can_mua', label: 'Mua'},
+        {key: 'cho_thue', label: 'Thuê'},
+      ];
+      document.getElementById('typeFilter').innerHTML = tabs.map(t => {
+        const active = currentType === t.key;
+        return '<button class="typeBtn' + (active ? ' active' : '') + '" onclick="switchTab(\'' + (t.key || '') + '\')">' + esc(t.label) + '</button>';
+      }).join('');
+    }
+
+    function switchTab(type) {
+      currentType = type || null;
+      currentPage = 0;
+      renderTabs();
+      loadPosts();
+    }
+
+    // ── Stats ───────────────────────────────────────────────────────────────
+    function renderStats(stats) {
+      const cards = [
+        ['Processed', stats.processed_posts],
+        ['Analyses', stats.analyses_completed],
+        ['Chunks', stats.search_chunks],
+        ['Observed', stats.observations],
+      ];
+      document.getElementById('stats').innerHTML = cards.map(([label, value]) => `
+        <div class="stat">
+          <div class="statLabel">${esc(label)}</div>
+          <div class="statValue">${esc(value)}</div>
+        </div>
+      `).join('');
+      document.getElementById('statusPill').innerHTML = `${esc(stats.processed_posts)} listings live`;
+    }
+    function sellerPhone(item) {
+      const phones = (item.analysis && item.analysis.phones) || [];
+      return phones.length ? phones.join(', ') : '';
+    }
+    function renderListingCards(items, emptyMessage) {
+      if (!items.length) {
+        renderEmpty('posts', emptyMessage);
+        return;
+      }
+      document.getElementById('posts').innerHTML = items.map(item => {
+        const analysis = item.analysis || {};
+        const title = analysis.title || analysis.summary || item.author || 'Bất động sản';
+        const price = analysis.price_text || '';
+        const address = analysis.address_text || '';
+        const area = analysis.area_text || '';
+        const propType = analysis.property_type || '';
+        const highlights = analysis.highlights || [];
+        const sim = item.similarity ? ' sim ' + Number(item.similarity).toFixed(3) : '';
+        const authorPhone = sellerPhone(item);
+        const intent = inferIntent(item);
+        const badgeClass = intent ? 'ban can_mua cho_thue'.split(' ').find(c => intent.startsWith(c)) || 'unk' : 'unk';
+        const badgeLabels = {ban: 'Bán', can_mua: 'Mua', cho_thue: 'Thuê', unk: '?'};
+        const badge = '<span class="intentBadge ' + badgeClass + '">' + esc(badgeLabels[badgeClass] || '?') + '</span>';
+        return `
+        <div class="item">
+          ${mainImage(item)}
+          <div class="cardBody">
+            ${badge}
+            ${price ? '<div class="price">' + esc(price) + '</div>' : ''}
+            <div class="title">${esc(title)}</div>
+            ${highlights.length ? '<div class="content">' + highlights.map(h => '• ' + esc(h)).join('<br>') + '</div>' : ''}
+            <div class="meta">
+              ${(area || propType) ? '<div class="subline">' + [propType, area].filter(Boolean).join(' · ') + '</div>' : ''}
+              ${address ? '<div class="subline">' + esc(address) + '</div>' : ''}
+              ${(item.author || authorPhone || item.datetime || sim) ? '<div class="subline">' + [esc(item.author || ''), authorPhone ? esc(authorPhone) : '', item.datetime ? esc(item.datetime) : '', sim ? sim.trim() : ''].filter(Boolean).join(' · ') + '</div>' : ''}
+              ${item.post_url ? '<div class="subline"><a class="link" href="' + esc(item.post_url) + '" target="_blank">Open</a></div>' : ''}
+            </div>
+          </div>
+        </div>
+      `}).join('');
+    }
+    function mainImage(item) {
+      const first = (item.images || [])[0];
+      if (!first) return '<div class="cardImage"></div>';
+      return '<img class="cardImage" src="' + esc(first) + '" alt="' + esc(item.author || 'property') + '" />';
+    }
+    function cardPreview(item) {
+      const analysis = item.analysis || {};
+      if (analysis.summary) return analysis.summary;
+      if (item.display_preview) return item.display_preview;
+      if (item.content_preview) return item.content_preview;
+      return item.chunk_text || '';
+    }
+    function renderEmpty(targetId, message) {
+      document.getElementById(targetId).innerHTML = '<div class="empty">' + esc(message) + '</div>';
+    }
+    async function loadStats() {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      renderStats(data);
+    }
+    async function loadPosts() {
+      if (isLoadingPosts) return;
+      renderTabs();
+      isLoadingPosts = true;
+      const loader = document.getElementById('postsLoader');
+      if (loader) loader.style.display = 'block';
+      try {
+        let url = '/api/posts?limit=' + PAGE_SIZE + '&offset=' + (currentPage * PAGE_SIZE);
+        if (currentType) url += '&type=' + currentType;
+        const res = await fetch(url);
+        const data = await res.json();
+        currentTotal = data.total || 0;
+        renderListingCards(data.items || [], 'Chưa có bài đã xử lý.');
+        renderPagination();
+      } finally {
+        isLoadingPosts = false;
+        if (loader) loader.style.display = 'none';
+      }
+    }
+
+    async function runSearch() {
+      const q = document.getElementById('searchQuery').value.trim();
+      if (!q) return;
+      if (isLoadingPosts) return;
+      isLoadingPosts = true;
+      const loader = document.getElementById('postsLoader');
+      if (loader) loader.style.display = 'block';
+      currentPage = 0;
+      try {
+        if (currentSearchMode === 'smart') {
+          const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+          const data = await res.json();
+          currentTotal = (data.items || []).length;
+          renderListingCards(data.items || [], 'Không tìm thấy kết quả semantic phù hợp.');
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+        let url = '/api/posts?q=' + encodeURIComponent(q) + '&limit=' + PAGE_SIZE + '&offset=0';
+        if (currentType) url += '&type=' + currentType;
+        const res = await fetch(url);
+        const data = await res.json();
+        currentTotal = data.total || 0;
+        renderListingCards(data.items || [], 'Không tìm thấy kết quả phù hợp.');
+        renderPagination();
+      } finally {
+        isLoadingPosts = false;
+        if (loader) loader.style.display = 'none';
+      }
+    }
+
+    function resetGrid() {
+      document.getElementById('searchQuery').value = '';
+      setSearchMode('smart');
+      currentPage = 0;
+      switchTab('');
+    }
+
+    // ── Pagination ───────────────────────────────────────────────────────────
+    function renderPagination() {
+      const totalPages = Math.ceil(currentTotal / PAGE_SIZE);
+      if (totalPages <= 1) {
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+      const prev = currentPage > 0
+        ? '<button class="alt" onclick="goPage(' + (currentPage - 1) + ')" style="padding:8px 14px;font-size:13px">← Trước</button>'
+        : '<button class="alt" disabled style="padding:8px 14px;font-size:13px;opacity:0.4">← Trước</button>';
+      const next = currentPage < totalPages - 1
+        ? '<button class="alt" onclick="goPage(' + (currentPage + 1) + ')" style="padding:8px 14px;font-size:13px">Sau →</button>'
+        : '<button class="alt" disabled style="padding:8px 14px;font-size:13px;opacity:0.4">Sau →</button>';
+      document.getElementById('pagination').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:24px">' +
+        prev +
+        '<span style="font-size:13px;color:var(--muted);font-weight:600">' +
+        (currentPage + 1) + ' / ' + totalPages + '</span>' +
+        next +
+        '</div>';
+    }
+
+    function goPage(page) {
+      currentPage = page;
+      loadPosts();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+    function toggleChat(forceState) {
+      const panel = document.getElementById('chatPanel');
+      const shouldOpen = typeof forceState === 'boolean' ? forceState : !panel.classList.contains('open');
+      panel.classList.toggle('open', shouldOpen);
+    }
+    function formatAssistantMessage(text) {
+      if (!text) return '<p>Chưa có dữ liệu phù hợp.</p>';
+      // Strip markdown syntax — keep only the readable content
+      const cleaned = text
+        .replace(/\u{1F4A1}[^\n]*/gu, '')   // remove lightbulb emoji lines
+        .replace(/^#{1,6}\s+/gm, '')         // remove ## headers
+        .replace(/\*\*(.+?)\*\*/g, '$1')     // **bold** → plain
+        .replace(/\*(.+?)\*/g, '$1')         // *italic* → plain
+        .replace(/^[-*]\s+/gm, '')           // bullet dashes → plain
+        .replace(/^\d+\.\s+/gm, '')          // numbered lists → plain
+        .replace(/^>\s*/gm, '')              // blockquotes → plain
+        .replace(/\n{3,}/g, '\n\n')         // max 2 blank lines
+        .trim();
+      // Split into paragraphs, filter empty
+      const paras = cleaned.split(/\n{2,}/).map(p => p.replace(/\n/g, ' ').trim()).filter(Boolean);
+      if (!paras.length) return '<p>' + esc(cleaned) + '</p>';
+      return paras.map(p => '<p>' + esc(p) + '</p>').join('');
+    }
+    function appendMessage(role, text) {
+      const box = document.getElementById('chatMessages');
+      const row = document.createElement('div');
+      row.className = 'bubbleRow ' + role;
+      row.innerHTML = '<div class="bubble ' + role + '">' + (role === 'assistant' ? formatAssistantMessage(text) : esc(text)) + '</div>';
+      box.appendChild(row);
+      box.scrollTop = box.scrollHeight;
+    }
+    function showTyping(show) {
+      const box = document.getElementById('chatMessages');
+      const existing = document.getElementById('typingBubble');
+      if (show) {
+        if (existing) return;
+        const row = document.createElement('div');
+        row.className = 'bubbleRow assistant';
+        row.id = 'typingBubble';
+        row.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+        box.appendChild(row);
+        box.scrollTop = box.scrollHeight;
+        return;
+      }
+      if (existing) existing.remove();
+    }
+    function openLightbox(src) {
+      const box = document.getElementById('lightbox');
+      document.getElementById('lightboxImage').src = src;
+      box.classList.add('open');
+    }
+    function closeLightbox() {
+      const box = document.getElementById('lightbox');
+      box.classList.remove('open');
+      document.getElementById('lightboxImage').src = '';
+    }
+    function dedupeMatches(matches) {
+      const seen = new Set();
+      return (matches || []).filter(item => {
+        const key = item.canonical_post_id || item.post_url || item.author || Math.random();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    function renderChatListings(matches) {
+      const items = dedupeMatches(matches).slice(0, 3);
+      if (!items.length) return '';
+      return '<div class="chatListings">' + items.map(item => {
+        const a = item.analysis || {};
+        const title = a.title || a.summary || 'Bất động sản';
+        const price = a.price_text || '';
+        const area = a.area_text || '';
+        const address = a.address_text || '';
+        const phones = (a.phones || []).join(', ');
+        const images = (item.images || []).slice(0, 6);
+        const contact = phones ? '<a href="tel:' + esc(phones.replace(/\s/g,'')) + '">' + esc(phones) + '</a>' : '';
+        return '<div class="chatListing">' +
+          (images.length ? '<div class="chatListingGallery">' + images.map(src => '<img class="chatListingImage" src="' + esc(src) + '" alt="" onclick="openLightbox(\'' + esc(src) + '\')" />').join('') + '</div>' : '') +
+          '<div class="chatListingBody">' +
+          '<div class="chatField" style="font-weight:700;font-size:13px;line-height:1.3">' + esc(title) + '</div>' +
+          (price ? '<div class="chatField" style="color:#0c8c62;font-weight:700">' + esc(price) + '</div>' : '') +
+          ([area, address].filter(Boolean).join(' · ') ? '<div class="chatField" style="color:#70828f">' + esc([area, address].filter(Boolean).join(' · ')) + '</div>' : '') +
+          (contact ? '<div class="chatField">' + contact + '</div>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+    }
+    function appendAssistantResult(payload) {
+      const box = document.getElementById('chatMessages');
+      const answer = formatAssistantMessage(payload.answer || payload.detail || '');
+      const listings = renderChatListings(payload.matches || []);
+      const bubbleRow = document.createElement('div');
+      bubbleRow.className = 'bubbleRow assistant';
+      bubbleRow.innerHTML = '<div class="bubble assistant">' + answer + '</div>';
+      box.appendChild(bubbleRow);
+      if (listings) {
+        const listingRow = document.createElement('div');
+        listingRow.className = 'bubbleRow assistant';
+        listingRow.innerHTML = listings;
+        box.appendChild(listingRow);
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+    async function runChat() {
+      const message = document.getElementById('chatMessage').value.trim();
+      if (!message) return;
+      toggleChat(true);
+      appendMessage('user', message);
+      document.getElementById('chatMessage').value = '';
+      showTyping(true);
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message, limit: 5})
+      });
+      const data = await res.json();
+      showTyping(false);
+      appendAssistantResult(data);
+    }
+    loadStats();
+    loadPosts();
+
+    // ── Zalo ──────────────────────────────────────────────────────────────────
+    // ── Settings navigation ─────────────────────────────────────────────────────
+    function showSection(name) {
+      document.getElementById('settingsSection').style.display = name === 'settings' ? 'block' : 'none';
+      document.getElementById('postsSection').style.display = name === 'posts' ? 'block' : 'none';
+      document.getElementById('zaloSection').style.display = 'none';
+      if (name === 'settings') {
+        showSettingsTab('cookies');
+      }
+    }
+
+    let currentSettingsTab = 'cookies';
+    let currentCronFreq = 'daily';
+    let _cachedGroups = [];
+    let _cachedCookies = [];
+
+    function showSettingsTab(tab) {
+      currentSettingsTab = tab;
+      ['cookies','groups','crawler','cron','telegram'].forEach(t => {
+        const pane = document.getElementById('pane' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (pane) pane.style.display = t === tab ? 'block' : 'none';
+        const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) {
+          if (t === tab) {
+            btn.style.background = 'var(--accent-soft)';
+            btn.style.color = 'var(--accent)';
+          } else {
+            btn.style.background = 'var(--surface)';
+            btn.style.color = 'var(--ink)';
+          }
+        }
+      });
+      if (tab === 'cookies') loadCookieProfiles();
+      if (tab === 'groups') loadGroupProfiles();
+      if (tab === 'crawler') loadCrawlerTab();
+      if (tab === 'cron') loadCronJobs();
+      if (tab === 'telegram') loadTelegramConfig();
+    }
+
+    // ── Cookies ─────────────────────────────────────────────────────────────────
+    async function loadCookieProfiles() {
+      try {
+        const res = await fetch('/api/admin/cookies');
+        const data = await res.json();
+        _cachedCookies = data.cookies || [];
+        renderCookieList(_cachedCookies);
+      } catch (e) { console.error(e); }
+    }
+
+    function renderCookieList(cookies) {
+      if (!cookies.length) {
+        document.getElementById('cookieList').innerHTML = '<div class="empty">Chưa có cookie profile nào.</div>';
+        return;
+      }
+      document.getElementById('cookieList').innerHTML = cookies.map(c => {
+        const isAlive = c.status === 'alive';
+        const badge = isAlive
+          ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#e8f8f1;color:#0c8c62;font-size:11px;font-weight:700">● Alive</span>'
+          : '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#fde8e8;color:#c0392b;font-size:11px;font-weight:700">● Dead</span>';
+        const lastChecked = c.last_checked_at ? '<span style="font-size:11px;color:var(--muted)">Checked: ' + esc(c.last_checked_at.substring(0,16)) + '</span>' : '';
+        const lastUsed = c.last_used_at ? '<span style="font-size:11px;color:var(--muted)">Used: ' + esc(c.last_used_at.substring(0,16)) + '</span>' : '';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--surface-soft)">' +
+          '<div>' +
+            '<div style="font-size:14px;font-weight:700;margin-bottom:4px">' + esc(c.name) + ' ' + badge + '</div>' +
+            '<div style="display:flex;gap:12px;flex-wrap:wrap">' + lastChecked + lastUsed + '</div>' +
+            (c.error_message ? '<div style="font-size:11px;color:#c0392b;margin-top:4px">' + esc(c.error_message) + '</div>' : '') +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0">' +
+            '<button onclick="validateCookie(' + c.id + ')" style="padding:7px 12px;font-size:12px" title="Validate alive/dead">🔄</button>' +
+            '<button onclick="setCookieAlive(' + c.id + ',true)" style="padding:7px 12px;font-size:12px" title="Mark alive">✅</button>' +
+            '<button onclick="setCookieAlive(' + c.id + ',false)" style="padding:7px 12px;font-size:12px" title="Mark dead">❌</button>' +
+            '<button onclick="deleteCookie(' + c.id + ')" style="padding:7px 12px;font-size:12px" title="Delete">🗑️</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function showAddCookie() {
+      document.getElementById('addCookieForm').style.display = 'block';
+      document.getElementById('cookieNameInput').value = 'default';
+      document.getElementById('cookieJsonInput').value = '';
+      document.getElementById('cookieSaveResult').textContent = '';
+    }
+
+    async function saveCookieProfile() {
+      const name = document.getElementById('cookieNameInput').value.trim();
+      const raw = document.getElementById('cookieJsonInput').value.trim();
+      if (!name) { document.getElementById('cookieSaveResult').style.color = '#c0392b'; document.getElementById('cookieSaveResult').textContent = 'Name required.'; return; }
+      let cookies_json;
+      try { cookies_json = JSON.parse(raw); } catch(e) { document.getElementById('cookieSaveResult').style.color = '#c0392b'; document.getElementById('cookieSaveResult').textContent = 'Invalid JSON: ' + e.message; return; }
+      try {
+        const res = await fetch('/api/admin/cookies', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({name, cookies_json})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('cookieSaveResult').style.color = '#0c8c62';
+          document.getElementById('cookieSaveResult').textContent = '✓ Saved (id=' + data.id + ')';
+          setTimeout(() => { document.getElementById('addCookieForm').style.display = 'none'; loadCookieProfiles(); }, 1200);
+        } else {
+          document.getElementById('cookieSaveResult').style.color = '#c0392b';
+          document.getElementById('cookieSaveResult').textContent = 'Error: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { document.getElementById('cookieSaveResult').style.color = '#c0392b'; document.getElementById('cookieSaveResult').textContent = 'Error: ' + e.message; }
+    }
+
+    async function validateCookie(id) {
+      const el = event.target;
+      const orig = el.textContent; el.textContent = '⏳'; el.disabled = true;
+      try {
+        const res = await fetch('/api/admin/cookies/' + id + '/validate', {method:'POST'});
+        const data = await res.json();
+        el.textContent = data.status === 'alive' ? '✅' : '❌';
+        loadCookieProfiles();
+      } catch(e) { el.textContent = '❌'; } finally { setTimeout(() => { el.textContent = orig; el.disabled = false; }, 3000); }
+    }
+
+    async function setCookieAlive(id, alive) {
+      try {
+        await fetch('/api/admin/cookies/' + id + '/status?status=' + (alive ? 'alive' : 'dead'), {method:'POST'});
+        loadCookieProfiles();
+      } catch(e) { console.error(e); }
+    }
+
+    async function deleteCookie(id) {
+      if (!confirm('Delete cookie profile #' + id + '?')) return;
+      try {
+        await fetch('/api/admin/cookies/' + id, {method:'DELETE'});
+        loadCookieProfiles();
+      } catch(e) { console.error(e); }
+    }
+
+    // ── Groups ──────────────────────────────────────────────────────────────────
+    async function loadGroupProfiles() {
+      try {
+        const res = await fetch('/api/admin/groups');
+        const data = await res.json();
+        _cachedGroups = data.groups || [];
+        renderGroupList(_cachedGroups);
+      } catch (e) { console.error(e); }
+    }
+
+    function renderGroupList(groups) {
+      if (!groups.length) {
+        document.getElementById('groupList').innerHTML = '<div class="empty">Chưa có group nào.</div>';
+        return;
+      }
+      document.getElementById('groupList').innerHTML = groups.map(g => {
+        const statusColors = {active:'#0c8c62', inactive:'#70828f'};
+        const statusBg = {active:'#e8f8f1', inactive:'#f0f0f0'};
+        const lastCrawled = g.last_crawled_at ? 'Crawled: ' + esc(g.last_crawled_at.substring(0,16)) : 'Chưa crawl';
+        const postCount = g.last_post_count != null ? g.last_post_count + ' posts' : '';
+        const priority = g.priority ? '⭐'.repeat(Math.min(g.priority, 3)) : '';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--surface-soft)">' +
+          '<div style="min-width:0;flex:1">' +
+            '<div style="font-size:13px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(g.url) + '</div>' +
+            '<div style="font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">' +
+              '<span style="padding:1px 6px;border-radius:4px;background:' + (statusBg[g.status]||'#f0f0f0') + ';color:' + (statusColors[g.status]||'#70828f') + ';font-weight:700">' + esc(g.status || '?') + '</span>' +
+              '<span>' + esc(lastCrawled) + '</span>' +
+              '<span>' + esc(postCount) + '</span>' +
+              (priority ? '<span>' + priority + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px">' +
+            '<button onclick="deleteGroup(' + g.id + ')" style="padding:7px 12px;font-size:12px" title="Remove">🗑️</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function showAddGroup() {
+      document.getElementById('addGroupForm').style.display = 'block';
+      document.getElementById('groupUrlInput').value = 'https://www.facebook.com/groups/';
+      document.getElementById('groupNameInput').value = '';
+      document.getElementById('groupPriorityInput').value = '0';
+      document.getElementById('groupMaxPostsInput').value = '120';
+      document.getElementById('groupSaveResult').textContent = '';
+    }
+
+    async function saveGroupProfile() {
+      const url = document.getElementById('groupUrlInput').value.trim();
+      const name = document.getElementById('groupNameInput').value.trim() || null;
+      const priority = parseInt(document.getElementById('groupPriorityInput').value) || 0;
+      const max_posts = parseInt(document.getElementById('groupMaxPostsInput').value) || 120;
+      if (!url) { document.getElementById('groupSaveResult').style.color = '#c0392b'; document.getElementById('groupSaveResult').textContent = 'URL required.'; return; }
+      try {
+        const res = await fetch('/api/admin/groups', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({url, name, priority, max_posts_per_group: max_posts})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('groupSaveResult').style.color = '#0c8c62';
+          document.getElementById('groupSaveResult').textContent = '✓ Saved (id=' + data.id + ')';
+          setTimeout(() => { document.getElementById('addGroupForm').style.display = 'none'; loadGroupProfiles(); }, 1200);
+        } else {
+          document.getElementById('groupSaveResult').style.color = '#c0392b';
+          document.getElementById('groupSaveResult').textContent = 'Error: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { document.getElementById('groupSaveResult').style.color = '#c0392b'; document.getElementById('groupSaveResult').textContent = 'Error: ' + e.message; }
+    }
+
+    async function deleteGroup(id) {
+      if (!confirm('Remove group #' + id + '?')) return;
+      try {
+        await fetch('/api/admin/groups/' + id, {method:'DELETE'});
+        loadGroupProfiles();
+      } catch(e) { console.error(e); }
+    }
+
+    // ── Crawler tab ─────────────────────────────────────────────────────────────
+    let _crawlerSettings = {};
+
+    async function loadCrawlerTab() {
+      // Load settings
+      try {
+        const res = await fetch('/api/admin/crawler/settings');
+        const data = await res.json();
+        _crawlerSettings = data.settings || {};
+      } catch(e) { _crawlerSettings = {}; }
+
+      // Rotation toggle
+      const rotEnabled = _crawlerSettings['rotation_enabled'] === 'true';
+      document.getElementById('rotationToggle').checked = rotEnabled;
+      document.getElementById('rotationAfterWrap').style.display = rotEnabled ? 'block' : 'none';
+      document.getElementById('rotationAfterGroups').value =
+        parseInt(_crawlerSettings['rotation_after_groups']) || 3;
+
+      // Cookie options (radio buttons)
+      await loadCookieProfiles();
+      const defaultId = _crawlerSettings['default_cookie_id'] || '';
+      const cookieBox = document.getElementById('crawlCookieOptions');
+      cookieBox.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Chọn cookie profile dùng khi cào:</div>' +
+        _cachedCookies.map(c => {
+          const isDefault = String(c.id) === String(defaultId);
+          const alive = c.status === 'alive';
+          const dot = alive ? '🟢' : '🔴';
+          const selected = isDefault ? 'checked' : '';
+          const disabled = !alive ? 'disabled style="opacity:0.4"' : '';
+          return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);cursor:pointer;margin-bottom:4px;background:var(--surface)">' +
+            '<input type="radio" name="crawlCookie" value="' + c.id + '" ' + selected + ' ' + disabled + ' />' +
+            '<span style="font-size:13px;font-weight:600">' + dot + ' ' + esc(c.name) + '</span>' +
+            '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + esc(c.status) + '</span>' +
+          '</label>';
+        }).join('');
+
+      // Groups
+      await loadGroupProfiles();
+
+      // Workers
+      const workers = parseInt(_crawlerSettings['workers'] || '1');
+      [1, 2, 3].forEach(w => {
+        const btn = document.getElementById('workersBtn_' + w);
+        if (!btn) return;
+        btn.style.background = w === workers ? 'var(--accent)' : 'var(--surface)';
+        btn.style.color = w === workers ? '#fff' : 'var(--ink)';
+      });
+
+      const groupBox = document.getElementById('crawlGroupChecks');
+      groupBox.innerHTML = _cachedGroups.map(g => {
+        const slug = g.url.replace('https://www.facebook.com/groups/', '').replace(/\//g, '');
+        return '<label style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface)">' +
+          '<input type="checkbox" class="groupCheck" value="' + g.id + '" checked style="width:auto" />' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(slug || g.url) + '</span>' +
+        '</label>';
+      }).join('');
+      updateGroupCount();
+
+      // Add listener for checkboxes
+      groupBox.querySelectorAll('.groupCheck').forEach(cb => {
+        cb.addEventListener('change', updateGroupCount);
+      });
+    }
+
+    function updateGroupCount() {
+      const total = document.querySelectorAll('.groupCheck').length;
+      const checked = document.querySelectorAll('.groupCheck:checked').length;
+      document.getElementById('groupSelectCount').textContent =
+        checked + '/' + total + ' nhóm được chọn';
+    }
+
+    function checkAllGroups() {
+      document.querySelectorAll('.groupCheck').forEach(cb => cb.checked = true);
+      updateGroupCount();
+    }
+    function uncheckAllGroups() {
+      document.querySelectorAll('.groupCheck').forEach(cb => cb.checked = false);
+      updateGroupCount();
+    }
+
+    function setWorkers(n) {
+      [1, 2, 3].forEach(w => {
+        const btn = document.getElementById('workersBtn_' + w);
+        if (!btn) return;
+        if (w === n) {
+          btn.style.background = 'var(--accent)';
+          btn.style.color = '#fff';
+        } else {
+          btn.style.background = 'var(--surface)';
+          btn.style.color = 'var(--ink)';
+        }
+      });
+      // Save immediately
+      fetch('/api/admin/crawler/settings', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({workers: n})
+      });
+    }
+
+    async function saveCrawlerSettings() {
+      const result = document.getElementById('crawlerSettingsResult');
+      result.textContent = '';
+      const cookieRadio = document.querySelector('input[name="crawlCookie"]:checked');
+      const rotationEnabled = document.getElementById('rotationToggle').checked;
+      const rotationAfter = parseInt(document.getElementById('rotationAfterGroups').value) || 3;
+      try {
+        const body = {};
+        if (cookieRadio) body.default_cookie_id = parseInt(cookieRadio.value);
+        body.rotation_enabled = rotationEnabled;
+        body.rotation_after_groups = rotationAfter;
+        const res = await fetch('/api/admin/crawler/settings', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ Đã lưu';
+          _crawlerSettings['rotation_enabled'] = String(rotationEnabled);
+          _crawlerSettings['rotation_after_groups'] = String(rotationAfter);
+          document.getElementById('rotationAfterWrap').style.display = rotationEnabled ? 'block' : 'none';
+        } else {
+          result.style.color = '#c0392b';
+          result.textContent = 'Error: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { result.style.color = '#c0392b'; result.textContent = 'Error: ' + e.message; }
+    }
+
+    async function saveRotationSetting() {
+      const enabled = document.getElementById('rotationToggle').checked;
+      document.getElementById('rotationAfterWrap').style.display = enabled ? 'block' : 'none';
+      // Auto-save on toggle change
+      const result = document.getElementById('crawlerSettingsResult');
+      try {
+        const res = await fetch('/api/admin/crawler/settings', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            rotation_enabled: enabled,
+            rotation_after_groups: parseInt(document.getElementById('rotationAfterGroups').value) || 3,
+          })
+        });
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ Rotation đã ' + (enabled ? 'bật' : 'tắt');
+          setTimeout(() => { result.textContent = ''; }, 2500);
+        }
+      } catch(e) {}
+    }
+
+    // ── Crawler trigger ─────────────────────────────────────────────────────────
+    async function triggerCrawl() {
+      const btn = document.getElementById('crawlTriggerBtn');
+      const result = document.getElementById('crawlResult');
+      const checked = Array.from(document.querySelectorAll('.groupCheck:checked')).map(i => parseInt(i.value));
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang cào...';
+      result.textContent = '';
+      try {
+        const res = await fetch('/api/admin/crawl/now', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({group_ids: checked, cookie_ids: []})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ ' + (data.message || 'Crawl đã bắt đầu. Kiểm tra /tmp/scraper_admin.log');
+        } else {
+          result.style.color = '#c0392b';
+          result.textContent = 'Error: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { result.style.color = '#c0392b'; result.textContent = 'Error: ' + e.message; }
+      finally { btn.disabled = false; btn.textContent = '🕷️ Bắt đầu Crawl ngay'; }
+    }
+
+    // ── Cron ─────────────────────────────────────────────────────────────────────
+    function setCronFreq(freq) {
+      currentCronFreq = freq;
+      ['hourly','daily','4h','2h'].forEach(f => {
+        const btn = document.getElementById('cronFreq_' + f);
+        if (btn) {
+          btn.style.background = f === freq ? 'var(--accent)' : 'var(--surface)';
+          btn.style.color = f === freq ? '#fff' : 'var(--ink)';
+        }
+      });
+    }
+
+    async function loadCronJobs() {
+      try {
+        const res = await fetch('/api/admin/schedules');
+        const data = await res.json();
+        const jobs = data.schedules || [];
+        if (!jobs.length) {
+          document.getElementById('activeCronJobs').innerHTML = '<div class="empty">Chưa có cron job nào.</div>';
+          return;
+        }
+        document.getElementById('activeCronJobs').innerHTML = jobs.map(j =>
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--surface-soft)">' +
+            '<div>' +
+              '<div style="font-size:13px;font-weight:700">' + esc(j.name || j.cron_expr) + '</div>' +
+              '<div style="font-size:11px;color:var(--muted)">#' + j.id + ' · ' + esc(j.cron_expr) + ' · created ' + esc((j.created_at||'').substring(0,16)) + '</div>' +
+            '</div>' +
+            '<button onclick="deleteCronJob(' + j.id + ')" style="padding:6px 10px;font-size:12px">🗑️</button>' +
+          '</div>'
+        ).join('');
+      } catch(e) {
+        document.getElementById('activeCronJobs').innerHTML = '<div class="empty">Không thể tải cron jobs.</div>';
+        console.error(e);
+      }
+    }
+
+    async function createCronJob() {
+      const result = document.getElementById('cronResult');
+      const freqMap = {
+        'hourly': {name: 'Crawl Hourly', expr: '7 * * * *'},
+        'daily': {name: 'Crawl Daily 8h', expr: '37 8 * * *'},
+        '4h': {name: 'Crawl Every 4h', expr: '27 */4 * * *'},
+        '2h': {name: 'Crawl Every 2h', expr: '47 */2 * * *'}
+      };
+      const cfg = freqMap[currentCronFreq] || freqMap['daily'];
+      try {
+        const res = await fetch('/api/admin/schedules', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({name: cfg.name, group_ids: [], cookie_ids: [], cron_expr: cfg.expr, enabled: true})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ Cron created (id=' + data.id + '). Tự động xóa sau 7 ngày.';
+          loadCronJobs();
+        } else {
+          result.style.color = '#c0392b';
+          result.textContent = 'Error: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { result.style.color = '#c0392b'; result.textContent = 'Error: ' + e.message; }
+    }
+
+    async function deleteCronJob(id) {
+      if (!confirm('Delete cron schedule #' + id + '?')) return;
+      try {
+        await fetch('/api/admin/schedules/' + id, {method:'DELETE'});
+        loadCronJobs();
+      } catch(e) { console.error(e); }
+    }
+
+    // ── Telegram ─────────────────────────────────────────────────────────────────
+    async function loadTelegramConfig() {
+      try {
+        const res = await fetch('/api/admin/telegram/status');
+        const data = await res.json();
+        document.getElementById('telegramEnabled').checked = data.enabled || false;
+        // Don't prefill token for security — leave blank
+        document.getElementById('telegramChatId').value = data.has_chat_id ? '••••••••' : '';
+        updateTelegramStatusBadge(data);
+      } catch(e) { console.error(e); }
+    }
+
+    function updateTelegramStatusBadge(data) {
+      const badge = document.getElementById('telegramStatusBadge');
+      if (!data.has_token) {
+        badge.textContent = '⚙️ Chưa cài';
+        badge.style.background = '#f0f0f0';
+        badge.style.color = '#70828f';
+        return;
+      }
+      if (data.enabled) {
+        badge.textContent = '🟢 Bật';
+        badge.style.background = '#e8f8f1';
+        badge.style.color = '#0c8c62';
+      } else {
+        badge.textContent = '🔴 Tắt';
+        badge.style.background = '#fde8e8';
+        badge.style.color = '#c0392b';
+      }
+    }
+
+    async function saveTelegramConfig() {
+      const result = document.getElementById('telegramSaveResult');
+      result.textContent = '';
+      const token = document.getElementById('telegramToken').value.trim();
+      const chatId = document.getElementById('telegramChatId').value.trim();
+      const enabled = document.getElementById('telegramEnabled').checked;
+      if (!token) { result.style.color = '#c0392b'; result.textContent = 'Token không được trống.'; return; }
+      if (!chatId || chatId === '••••••••') { result.style.color = '#c0392b'; result.textContent = 'Chat ID không được trống.'; return; }
+      try {
+        const res = await fetch('/api/admin/telegram/config', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({bot_token: token, chat_id: chatId, enabled})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ Đã lưu cấu hình Telegram';
+          document.getElementById('telegramToken').value = '';
+          document.getElementById('telegramChatId').value = '••••••••';
+          loadTelegramConfig();
+        } else {
+          result.style.color = '#c0392b';
+          result.textContent = 'Lỗi: ' + (data.detail || 'unknown');
+        }
+      } catch(e) { result.style.color = '#c0392b'; result.textContent = 'Lỗi: ' + e.message; }
+    }
+
+    async function testTelegram() {
+      const btn = document.getElementById('telegramTestBtn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+      try {
+        const res = await fetch('/api/admin/telegram/test', {method:'POST'});
+        const data = await res.json();
+        const result = document.getElementById('telegramSaveResult');
+        if (res.ok) {
+          result.style.color = '#0c8c62';
+          result.textContent = '✓ Test gửi thành công! Kiểm tra Telegram.';
+        } else {
+          result.style.color = '#c0392b';
+          result.textContent = 'Lỗi: ' + (data.detail || 'unknown');
+        }
+      } catch(e) {
+        document.getElementById('telegramSaveResult').style.color = '#c0392b';
+        document.getElementById('telegramSaveResult').textContent = 'Lỗi: ' + e.message;
+      }
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+
+    // ── Post-init load ──────────────────────────────────────────────────────────
+    loadStats();
+    loadPosts();
+
+    // ── Zalo ──────────────────────────────────────────────────────────────────
+
+    async function zaloCheckStatus() {
+      try {
+        const res = await fetch('/api/zalo/status');
+        const data = await res.json();
+        const loggedIn = data.logged_in;
+        const hasCreds = data.credentials?.hasCookie;
+        document.getElementById('zaloLoginStatus').style.display = loggedIn ? 'none' : 'block';
+        document.getElementById('zaloStatusBar').style.display = loggedIn ? 'block' : 'none';
+        document.getElementById('zaloLoginForm').style.display = (loggedIn || hasCreds) ? 'none' : 'block';
+        if (!loggedIn && hasCreds) {
+          document.getElementById('zaloLoginStatus').innerHTML =
+            '<button class="alt" onclick="zaloLogin()">Đăng nhập với credentials đã lưu</button>' +
+            '<button class="alt" onclick="showZaloLoginForm()" style="margin-left:8px">Nhập Cookie mới</button>';
+        }
+      } catch (err) {
+        console.error('zalo status error:', err);
+      }
+    }
+
+    function showZaloLoginForm() {
+      document.getElementById('zaloLoginForm').style.display = 'block';
+      document.getElementById('zaloLoginStatus').style.display = 'none';
+    }
+
+    async function zaloLogin() {
+      const cookie = document.getElementById('zCookie').value.trim();
+      const imei = document.getElementById('zImei').value.trim();
+      const ua = document.getElementById('zUa').value.trim();
+      if (!cookie) { alert('Vui lòng nhập Cookie'); return; }
+      try {
+        const body = { cookie };
+        if (imei) body.imei = imei;
+        if (ua) body.user_agent = ua;
+        const res = await fetch('/api/zalo/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('zaloLoginForm').style.display = 'none';
+          document.getElementById('zaloStatusBar').style.display = 'block';
+          document.getElementById('zaloLoginStatus').style.display = 'none';
+        } else {
+          alert('Đăng nhập thất bại: ' + (data.detail || JSON.stringify(data)));
+        }
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    async function zaloSendTest() {
+      const userId = document.getElementById('zPhone').value.trim();
+      const msg = document.getElementById('zMsg').value.trim();
+      const resultDiv = document.getElementById('zaloResult');
+      if (!userId || !msg) { resultDiv.style.color = '#e74c3c'; resultDiv.textContent = 'Vui lòng nhập Zalo ID và nội dung.'; return; }
+      resultDiv.style.color = '#70828f';
+      resultDiv.textContent = 'Đang gửi...';
+      try {
+        const res = await fetch('/api/zalo/send', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({user_id: userId, message: msg}),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          resultDiv.style.color = '#0c8c62';
+          resultDiv.textContent = '✓ Đã gửi đến ' + userId;
+          document.getElementById('zMsg').value = '';
+        } else {
+          resultDiv.style.color = '#e74c3c';
+          resultDiv.textContent = '✗ ' + (data.detail || 'Gửi thất bại');
+        }
+      } catch (err) {
+        resultDiv.style.color = '#e74c3c';
+        resultDiv.textContent = '✗ Lỗi: ' + err.message;
+      }
+    }
+
+    async function zaloShowFriends() {
+      const box = document.getElementById('zaloFriendsList');
+      box.style.display = 'block';
+      box.innerHTML = '<div style="padding:12px;font-size:13px;color:#70828f">Đang tải...</div>';
+      try {
+        const res = await fetch('/api/zalo/friends');
+        const data = await res.json();
+        if (!res.ok || !data.friends) { box.innerHTML = '<div style="padding:12px;font-size:13px;color:#e74c3c">Lỗi: ' + (data.detail || '') + '</div>'; return; }
+        const friends = data.friends;
+        if (!friends.length) { box.innerHTML = '<div style="padding:12px;font-size:13px">Không có bạn bè nào.</div>'; return; }
+        box.innerHTML = friends.map(f => {
+          const name = f.display_name || 'Không tên';
+          const id = f.zalo_id;
+          return '<div style="display:grid;grid-template-columns:40px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid #d7e3ea;cursor:pointer" onclick="zaloPickFriend(\'' + id + '\',\'' + name.replace(/'/g,"\\'") + '\')">' +
+            (f.avatar ? '<img src="' + esc(f.avatar) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />' : '<div style="width:36px;height:36px;border-radius:50%;background:#d7e3ea;display:grid;place-items:center;font-size:16px">👤</div>') +
+            '<div style="font-size:13px;font-weight:600;color:#1a2a33;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(name) + '</div>' +
+            '<div style="font-size:11px;color:#70828f;text-align:right">' + id.substring(0,6) + '...</div>' +
+            '</div>';
+        }).join('');
+      } catch (err) {
+        box.innerHTML = '<div style="padding:12px;font-size:13px;color:#e74c3c">Lỗi: ' + err.message + '</div>';
+      }
+    }
+
+    window.zaloPickFriend = function(id, name) {
+      document.getElementById('zPhone').value = id;
+      document.getElementById('zaloFriendsList').style.display = 'none';
+      document.getElementById('zaloResult').textContent = 'Đã chọn: ' + name;
+    };
+  </script>
+</body>
+</html>

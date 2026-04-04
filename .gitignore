@@ -1,0 +1,55 @@
+# Zalo session (sensitive)
+zalo/zcookies.json
+zalo/cookie_manager.js
+zalo/node_modules/
+zalo/bun.lock
+
+# Environment & secrets
+.env
+.env.*
+cookies.json
+*.pem
+*.key
+*.log
+bds.log
+bds.pid
+
+# Dependencies
+.venv*/
+.venv314*/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Playwright browsers
+ms-playwright/
+.playwright/
+
+# Crawler output (should be volume-mounted or backed up separately)
+output/
+*.json
+!requirements.txt
+
+# Browser profiles (Facebook session — sensitive)
+browser_profile_desktop/
+browser_profile_desktop_*/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Editor
+.vscode/
+.idea/
+
+# ML models (download at runtime)
+models/
+.huggingface/
+
+# Docs build artifacts (only keep source markdown)
+docs/_build/
