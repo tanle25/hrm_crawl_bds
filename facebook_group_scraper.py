@@ -33,7 +33,6 @@ from db import (
 ROOT_DIR = Path(__file__).resolve().parent
 DEFAULT_COOKIE_FILE = ROOT_DIR / "cookies.json"
 DEFAULT_GROUP_FILE = ROOT_DIR / "facebook_groups.txt"
-DEFAULT_OUTPUT_DIR = ROOT_DIR / "output"
 DEFAULT_PROFILE_DIR = ROOT_DIR / "browser_profile_desktop"
 FEED_SELECTOR = "[role='feed']"
 BDS_KEYWORDS = (
@@ -69,7 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cookies-file", default=None)
     parser.add_argument("--use-db-cookies", action="store_true", help="Lay cookie tu DB thay vi file")
     parser.add_argument("--use-db-groups", action="store_true", help="Lay groups tu DB thay vi file")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--output-dir", default=None, help="Thu muc luu artifact/debug (tuy chon)")
     parser.add_argument("--profile-dir", default=str(DEFAULT_PROFILE_DIR))
     parser.add_argument("--database-url", default=None)
     parser.add_argument("--max-groups", type=int, default=None)
@@ -598,7 +597,7 @@ def crawl_group(
     page: Page,
     context_page_factory,
     group_url: str,
-    output_dir: Path,
+    output_dir: Path | None,
     crawl_run_id: int,
     scroll_rounds: int,
     scroll_px: int,
@@ -608,7 +607,7 @@ def crawl_group(
     min_content_length: int,
     keyword_filter: bool,
     near_duplicate_threshold: float,
-) -> tuple[list[dict[str, Any]], Path, Path, int]:
+) -> tuple[list[dict[str, Any]], Path | None, Path | None, int]:
     logging.info("Dang mo group: %s", group_url)
     page.goto(group_url, wait_until="domcontentloaded", timeout=120000)
     page.wait_for_timeout(7000)
@@ -692,7 +691,10 @@ def crawl_group(
                 post["post_url"] = resolved
     finally:
         resolver_page.close()
-    html_path, png_path = collect_page_artifacts(page, output_dir=output_dir, slug=safe_slug(group_url))
+    html_path = None
+    png_path = None
+    if output_dir is not None:
+        html_path, png_path = collect_page_artifacts(page, output_dir=output_dir, slug=safe_slug(group_url))
     return deduped, html_path, png_path, total_inserted
 
 
@@ -813,9 +815,10 @@ def main() -> int:
     args = parser.parse_args()
     setup_logging(args.log_level)
 
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir) if args.output_dir else None
     profile_dir = Path(args.profile_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     # Get cookies: DB (alive) or file
     cookies: list[dict[str, Any]] = []
@@ -860,10 +863,9 @@ def main() -> int:
         logging.error("Khong co group nao de crawl.")
         return 1
 
-    output_file = output_dir / f"bds_thanhhoa_desktop_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
     crawled_at = datetime.now(timezone.utc).isoformat()
 
-    # Attach output_dir as attribute so worker threads can access it
+    # Attach optional output_dir as attribute so worker threads can access it
     args.output_dir = output_dir
 
     all_rows: list[dict[str, Any]] = []
@@ -895,11 +897,18 @@ def main() -> int:
                 failed += 1
                 logging.exception("[FATAL] Worker error for %s: %s", group_url, exc)
 
-    output_file.write_text(json.dumps(all_rows, ensure_ascii=False, indent=2), encoding="utf-8")
-    logging.info(
-        "Xong! Tong: %s bai (completed=%s, failed=%s) → %s",
-        len(all_rows), completed, failed, output_file,
-    )
+    if output_dir is not None:
+        output_file = output_dir / f"bds_thanhhoa_desktop_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+        output_file.write_text(json.dumps(all_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        logging.info(
+            "Xong! Tong: %s bai (completed=%s, failed=%s) → %s",
+            len(all_rows), completed, failed, output_file,
+        )
+    else:
+        logging.info(
+            "Xong! Tong: %s bai (completed=%s, failed=%s) — da luu truc tiep vao database.",
+            len(all_rows), completed, failed,
+        )
     return 0
 
 
