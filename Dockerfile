@@ -1,6 +1,6 @@
 # BDS Agent — Dockerfile
 # Multi-stage build for Linux deployment
-FROM python:3.14-slim-bookworm AS base
+FROM python:3.14-slim AS base
 
 SHELL ["/bin/bash", "-e", "-c"]
 
@@ -75,7 +75,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgbm1 \
         libpango-1.0-0 \
         libcairo2 \
-        libasound2 \
+        libasound2t64 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder stages
