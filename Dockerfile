@@ -88,7 +88,8 @@ COPY . .
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser \
-    && chown -R appuser:appuser /home/appuser
+    && mkdir -p /app/output /app/browser_profile_desktop \
+    && chown -R appuser:appuser /home/appuser /app
 USER appuser
 
 # Environment defaults (override via -e or .env)
