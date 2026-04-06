@@ -18,7 +18,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from db import connect_db, ensure_schema, get_database_url
 from llm_enricher import process_once
@@ -566,6 +566,17 @@ def list_cookies() -> dict:
 class CookieUpdate(BaseModel):
     name: str
     cookies_json: list[dict]
+
+    @field_validator("cookies_json", mode="before")
+    @classmethod
+    def normalize_cookies_json(cls, value):
+        # Accept both raw cookie arrays and common export wrappers:
+        # { "cookies": [...] } or { "url": "...", "cookies": [...] }
+        if isinstance(value, dict):
+            cookies = value.get("cookies")
+            if isinstance(cookies, list):
+                return cookies
+        return value
 
 
 @app.post("/api/admin/cookies")
