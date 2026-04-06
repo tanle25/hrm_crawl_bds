@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -46,6 +47,8 @@ logging.basicConfig(
 
 ENRICHER_STOP = threading.Event()
 ENRICHER_THREAD: threading.Thread | None = None
+SCHEDULER_STOP = threading.Event()
+SCHEDULER_THREAD: threading.Thread | None = None
 
 
 def build_enricher_args():
@@ -83,9 +86,176 @@ def enrichment_worker_loop() -> None:
     enricher_logger.info("[enricher] Shutdown signal received — exiting.")
 
 
+def _resolve_python_executable(project_root: Path) -> str:
+    if sys.platform == "win32":
+        venv_python = project_root / ".venv314" / "Scripts" / "python.exe"
+    else:
+        venv_python = project_root / ".venv314" / "bin" / "python"
+    return str(venv_python) if venv_python.exists() else sys.executable
+
+
+def _resolve_group_urls(group_ids: list[int]) -> list[str]:
+    if not group_ids:
+        return []
+    with connect_db(get_database_url(None)) as conn:
+        ensure_schema(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT url
+                FROM fb_groups
+                WHERE id = ANY(%s)
+                ORDER BY id ASC
+                """,
+                (group_ids,),
+            )
+            return [row[0] for row in cur.fetchall()]
+
+
+def _start_crawl_process(group_ids: list[int] | None = None, *, schedule_id: int | None = None) -> tuple[bool, str]:
+    from db import get_crawler_settings
+
+    project_root = Path(__file__).parent.resolve()
+    python_exec = _resolve_python_executable(project_root)
+
+    with connect_db(get_database_url(None)) as conn:
+        ensure_schema(conn)
+        settings = get_crawler_settings(conn)
+    workers = int(settings.get("workers", "1"))
+
+    args = [
+        python_exec,
+        str(project_root / "facebook_group_scraper.py"),
+        "--headless",
+        "--use-db-cookies",
+        "--scroll-rounds", "16",
+        "--workers", str(workers),
+    ]
+
+    resolved_urls = _resolve_group_urls(group_ids or [])
+    if resolved_urls:
+        for url in resolved_urls:
+            args += ["--group-url", url]
+    else:
+        args += ["--use-db-groups"]
+
+    env = os.environ.copy()
+    env["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
+
+    log_name = f"scraper_schedule_{schedule_id}.log" if schedule_id is not None else "scraper_admin.log"
+    log_path = Path(tempfile.gettempdir()) / log_name
+    with open(log_path, "a", encoding="utf-8") as log_out:
+        subprocess.Popen(args, cwd=str(project_root), env=env, stdout=log_out, stderr=subprocess.STDOUT)
+
+    return True, f"Crawl started ({workers} worker{'s' if workers > 1 else ''}). Log: {log_path}"
+
+
+def _cron_field_matches(field: str, value: int) -> bool:
+    if field == "*":
+        return True
+    for part in field.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if part == "*":
+            return True
+        if part.startswith("*/"):
+            step = int(part[2:])
+            if step > 0 and value % step == 0:
+                return True
+            continue
+        if "-" in part:
+            start, end = part.split("-", 1)
+            if int(start) <= value <= int(end):
+                return True
+            continue
+        if int(part) == value:
+            return True
+    return False
+
+
+def _cron_matches(expr: str, dt: datetime) -> bool:
+    minute, hour, day, month, weekday = expr.split()
+    cron_weekday = (dt.weekday() + 1) % 7
+    return (
+        _cron_field_matches(minute, dt.minute)
+        and _cron_field_matches(hour, dt.hour)
+        and _cron_field_matches(day, dt.day)
+        and _cron_field_matches(month, dt.month)
+        and _cron_field_matches(weekday, cron_weekday)
+    )
+
+
+def _compute_next_run(expr: str, now: datetime) -> datetime | None:
+    candidate = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    for _ in range(60 * 24 * 14):
+        if _cron_matches(expr, candidate):
+            return candidate
+        candidate += timedelta(minutes=1)
+    return None
+
+
+def scheduler_worker_loop() -> None:
+    scheduler_logger = logging.getLogger("bds-api.scheduler")
+    scheduler_logger.info("Schedule worker started.")
+
+    while not SCHEDULER_STOP.is_set():
+        try:
+            now = datetime.now(UTC).replace(second=0, microsecond=0)
+            with connect_db(get_database_url(None)) as conn:
+                ensure_schema(conn)
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT id, name, group_ids, cron_expr, enabled, last_run_at, next_run_at
+                        FROM crawl_schedules
+                        WHERE enabled = TRUE
+                        ORDER BY id ASC
+                        """
+                    )
+                    schedules = cur.fetchall()
+
+                    for row in schedules:
+                        schedule_id, name, group_ids, cron_expr, _enabled, last_run_at, next_run_at = row
+                        should_run = False
+                        if next_run_at is None:
+                            next_run = _compute_next_run(cron_expr, now - timedelta(minutes=1))
+                            cur.execute(
+                                "UPDATE crawl_schedules SET next_run_at = %s, updated_at = NOW() WHERE id = %s",
+                                (next_run, schedule_id),
+                            )
+                            next_run_at = next_run
+
+                        if next_run_at and next_run_at <= now:
+                            if not last_run_at or last_run_at.replace(second=0, microsecond=0) < next_run_at.replace(second=0, microsecond=0):
+                                should_run = True
+
+                        if should_run:
+                            ok, message = _start_crawl_process(group_ids or [], schedule_id=schedule_id)
+                            next_run = _compute_next_run(cron_expr, now)
+                            cur.execute(
+                                """
+                                UPDATE crawl_schedules
+                                SET last_run_at = NOW(),
+                                    next_run_at = %s,
+                                    updated_at = NOW()
+                                WHERE id = %s
+                                """,
+                                (next_run, schedule_id),
+                            )
+                            scheduler_logger.info("[schedule:%s] %s — %s", schedule_id, name, message if ok else "failed")
+                conn.commit()
+        except Exception:
+            scheduler_logger.exception("Schedule worker error.")
+
+        SCHEDULER_STOP.wait(30)
+
+    scheduler_logger.info("Schedule worker stopped.")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global ENRICHER_THREAD
+    global ENRICHER_THREAD, SCHEDULER_THREAD
     auto_start = os.getenv("AUTO_START_ENRICHER", "true").lower() in {"1", "true", "yes"}
     if auto_start and ENRICHER_THREAD is None:
         ENRICHER_STOP.clear()
@@ -96,8 +266,18 @@ async def lifespan(_app: FastAPI):
         )
         ENRICHER_THREAD.start()
         logger.info("Enricher background thread started.")
+    if SCHEDULER_THREAD is None:
+        SCHEDULER_STOP.clear()
+        SCHEDULER_THREAD = threading.Thread(
+            target=scheduler_worker_loop,
+            name="crawl-scheduler",
+            daemon=True,
+        )
+        SCHEDULER_THREAD.start()
+        logger.info("Schedule background thread started.")
     yield
     ENRICHER_STOP.set()
+    SCHEDULER_STOP.set()
     logger.info("Shutdown signal sent to enricher.")
 
 
@@ -725,42 +905,8 @@ class CrawlNow(BaseModel):
 @app.post("/api/admin/crawl/now")
 def crawl_now(body: CrawlNow) -> dict:
     """Trigger a crawl run immediately for specified groups."""
-    import subprocess
-    from pathlib import Path
-    from db import get_crawler_settings
-
-    project_root = Path(__file__).parent.resolve()
-
-    # Detect venv python (cross-platform)
-    if sys.platform == "win32":
-        venv_python = project_root / ".venv314" / "Scripts" / "python.exe"
-    else:
-        venv_python = project_root / ".venv314" / "bin" / "python"
-
-    # Read workers from DB settings
-    with connect_db(get_database_url(None)) as conn:
-        ensure_schema(conn)
-        settings = get_crawler_settings(conn)
-    workers = int(settings.get("workers", "1"))
-
-    args = [
-        str(venv_python),
-        str(project_root / "facebook_group_scraper.py"),
-        "--headless",
-        "--scroll-rounds", "16",
-        "--workers", str(workers),
-    ]
-    for gid in (body.group_ids or []):
-        args += ["--group-url", f"https://www.facebook.com/groups/{gid}/"]
-
-    env = os.environ.copy()
-    env["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
-
-    log_path = Path(tempfile.gettempdir()) / "scraper_admin.log"
-    with open(log_path, "a") as log_out:
-        subprocess.Popen(args, cwd=str(project_root), env=env, stdout=log_out, stderr=subprocess.STDOUT)
-
-    return {"ok": True, "message": f"Crawl started ({workers} worker{'s' if workers > 1 else ''})."}
+    ok, message = _start_crawl_process(body.group_ids or [])
+    return {"ok": ok, "message": message}
 
 
 # ── Crawler settings ────────────────────────────────────────────────────────────
