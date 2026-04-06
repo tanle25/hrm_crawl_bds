@@ -15,7 +15,7 @@ SCHEMA_FILE = ROOT_DIR / "schema.sql"
 
 
 def get_database_url(explicit_url: str | None = None) -> str:
-    return explicit_url or DEFAULT_DATABASE_URL
+    return explicit_url or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL
 
 
 def connect_db(database_url: str | None = None) -> psycopg.Connection:
