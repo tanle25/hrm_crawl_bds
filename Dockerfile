@@ -57,6 +57,8 @@ FROM base AS runtime
 LABEL org.opencontainers.image.title="BDS Agent"
 LABEL org.opencontainers.image.description="Facebook crawler + LLM enrichment + Telegram notifications"
 
+WORKDIR /app
+
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq5 \
@@ -84,7 +86,7 @@ COPY --from=playwright-browsers /ms-playwright /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Copy application
-COPY . .
+COPY . /app
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser \
