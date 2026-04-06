@@ -12,23 +12,53 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openrouter}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-qwen/qwen3.6-plus:free}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://cloud.ollama.com}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gpt-oss:120b-cloud}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-huggingface_local}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-AITeamVN/Vietnamese_Embedding}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-https://api.openai.com/v1}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - TELEGRAM_ENABLED=${TELEGRAM_ENABLED:-false}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OLLAMA_CLOUD_API_KEY=${OLLAMA_CLOUD_API_KEY:-}
-      - OLLAMA_CLOUD_API_BASE=${OLLAMA_CLOUD_API_BASE:-}
+      - AUTO_START_ENRICHER=${AUTO_START_ENRICHER:-true}
+      - ENRICHER_POLL_INTERVAL=${ENRICHER_POLL_INTERVAL:-15}
       - PYTHONUNBUFFERED=1
       - PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
     volumes:
-      # Mount browser profile so cookies persist across restarts
       - bds-profile:/app/browser_profile_desktop
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/stats')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 20s
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: bds-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-bds}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bds_password}
+      - POSTGRES_DB=${POSTGRES_DB:-bds_agent}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bds} -d ${POSTGRES_DB:-bds_agent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   bds-profile:
+  postgres-data:
