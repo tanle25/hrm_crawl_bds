@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 3: Playwright browsers ─────────────────────────────────────────────
 FROM base AS playwright-browsers
@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --user \
+RUN pip install --no-cache-dir \
         playwright>=1.52.0
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -79,9 +79,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder stages
-COPY --from=python-deps /root/.local /root/.local
+COPY --from=python-deps /usr/local /usr/local
 COPY --from=playwright-browsers /ms-playwright /ms-playwright
-ENV PATH=/root/.local/bin:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Copy application
